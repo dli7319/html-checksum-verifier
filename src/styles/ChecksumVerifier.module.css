@@ -1,0 +1,16 @@
+.mainContainer {
+    --gap: 1rem;
+    gap: var(--gap);
+    padding: var(--gap);
+}
+
+.components {
+    border-radius: 1rem;
+    /* margin: 1rem; */
+    background: #eee;
+    padding: 1rem;
+    text-align: center;
+    flex: 1 1 30%;
+    display: flex;
+    flex-direction: column;
+}
