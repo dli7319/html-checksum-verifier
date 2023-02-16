@@ -12,8 +12,6 @@ All checksums are computed locally using [node-forge](https://github.com/digital
 <!-- 
 Todo:
 - Compute checksums in web workers. 
-- Add the option to paste a checksum and verify it against the input.
-- Add an option to copy the checksum to the clipboard.
 - Add the ability to load multiple files and compute their checksums.
 -->
 

@@ -1,3 +1,5 @@
+declare module '*.css';
+
 declare module 'node-forge/lib/md5' {
     import forge from 'node-forge';
     export default forge.md5;
