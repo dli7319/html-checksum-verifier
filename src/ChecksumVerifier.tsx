@@ -119,38 +119,25 @@ export default function ChecksumVerifier() {
         if (file) {
             setFileValue(event.target.value);
             // Create a stream reader to read the file
-            const stream = file.stream();
-            const reader = stream.getReader();
             // Read the file in chunks
-            let processedBytes = 0;
-            const startTime = Date.now();
-            reader.read().then(function processChunk({ value, done }) {
-                if (done) {
-                    console.log("Done reading file");
-                    const endTime = Date.now();
-                    const duration = endTime - startTime;
-                    console.log(`Read ${processedBytes} bytes in ${duration} ms`);
+            const chunkSize = 1024 * 1024; // 1 MB
+            for (let i = 0; i < file.size; i += chunkSize) {
+                const startPosition = i;
+                const fileSlice = file.slice(i, i + chunkSize);
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    console.log("Started at", startPosition);
+                    const result = event.target?.result as string;
+                    const processedBytes = startPosition + result.length;
                     allWorkers.forEach(worker => worker.current.postMessage({
-                        done: true
+                        text: result,
+                        done: processedBytes >= file.size
                     }));
-                    return;
+                    const processedPercentage = processedBytes / file.size * 100;
+                    setFileProgress(processedPercentage);
                 }
-                processedBytes += value.length;
-                console.log("Chunk length: " + value.length);
-                const processedPercentage = processedBytes / file.size * 100;
-                setFileProgress(processedPercentage);
-                console.log(`Read ${processedBytes} bytes (${processedPercentage.toFixed(2)}%)`);
-                const startPost = Date.now();
-                allWorkers.forEach(worker => worker.current.postMessage({
-                    dataArray: value
-                }));
-                const endPost = Date.now();
-                console.log(`Posted ${value.length} bytes in ${endPost - startPost} ms`);
-                // Hack to allow the UI to update.
-                setTimeout(() => {
-                    reader.read().then(processChunk);
-                }, 1);
-            });
+                reader.readAsBinaryString(fileSlice);
+            }
         }
     }
 

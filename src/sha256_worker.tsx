@@ -15,11 +15,6 @@ self.onmessage = ({ data: {
 }) => {
     if (text) {
         sha256State.update(text);
-    } else if (dataArray) {
-        for (let i = 0; i < dataArray.length; i++) {
-            const binaryString = String.fromCharCode(dataArray[i]);
-            sha256State.update(binaryString);
-        }
     }
     if (done) {
         self.postMessage({

@@ -15,11 +15,6 @@ self.onmessage = ({ data: {
 }) => {
     if (text) {
         md5State.update(text);
-    } else if (dataArray) {
-        for (let i = 0; i < dataArray.length; i++) {
-            const binaryString = String.fromCharCode(dataArray[i]);
-            md5State.update(binaryString);
-        }
     }
     if (done) {
         self.postMessage({
