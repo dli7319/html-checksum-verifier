@@ -27,7 +27,7 @@ interface WebWorkerMessage {
 }
 
 const defaultChecksumValues: ChecksumValues = {
-    fileId: 1,
+    fileId: -1,
     md5Sum: "",
     sha1Sum: "",
     sha256Sum: "",
@@ -35,10 +35,10 @@ const defaultChecksumValues: ChecksumValues = {
 };
 
 function checksumValuesUpdater(state: ChecksumValues, newState: ChecksumValuesUpdate): ChecksumValues {
-    if (newState.fileId === -1) {
+    if (newState.fileId && newState.fileId != state.fileId) {
         return {
             ...defaultChecksumValues,
-            fileId: state.fileId + 1,
+            fileId: newState.fileId,
         }
     }
     return { ...state, ...newState };
@@ -57,13 +57,26 @@ function resetWorkers({ md5Worker, sha1Worker, sha256Worker }: ChecksumWorkerRef
     sha256Worker.current = new Worker(new URL("./sha256_worker.tsx", import.meta.url));
 }
 
+function readSlice(file: File, start: number, end: number): () => Promise<Uint8Array> {
+    const newPromise = new Promise<Uint8Array>((resolve) => {
+        const fileSlice = file.slice(start, end);
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const result = event.target?.result as ArrayBuffer;
+            const view = new Uint8Array(result);
+            resolve(view);
+        }
+        reader.readAsArrayBuffer(fileSlice);
+    });
+    return () => newPromise;
+}
+
 const emptyWorker = new Worker(URL.createObjectURL(new Blob([""])));
 
 // Size of chunks to read and send to the workers.
 const chunkSize = 64 * 1024 * 1024; // 64 MB
 // Number of chunks to send to the workers at a time.
-// TODO: Fix the bug here. The chunks are not read in order.
-const numberOfChunksBuffer = 1;
+const numberOfChunksBuffer = 10;
 
 export default function ChecksumVerifier() {
     const [checksumValues, setChecksumValues] = useReducer(checksumValuesUpdater, defaultChecksumValues);
@@ -71,15 +84,17 @@ export default function ChecksumVerifier() {
     const [textValue, setTextValue] = useState("");
     const [fileValue, setFileValue] = useState("");
     const [fileProgress, setFileProgress] = useState(0);
+    const fileId = useRef(0);
     const md5Worker = useRef<Worker>(emptyWorker);
     const sha1Worker = useRef<Worker>(emptyWorker);
     const sha256Worker = useRef<Worker>(emptyWorker);
-    const fileSliceQueue = useRef<{ file: File, start: number, end: number }[]>([]);
+    const fileSliceQueue = useRef<{ file: File, start: number, end: number, fileId: number }[]>([]);
     const workerProgress = useRef({
         md5: 0,
         sha1: 0,
         sha256: 0,
     });
+    const slicePromiseChain = useRef<Promise<void>>(Promise.resolve());
     md5Worker.current.onmessage = ({ data }: MessageEvent<WebWorkerMessage>) => {
         if (data.checksum) {
             setChecksumValues({ md5Sum: data.checksum });
@@ -106,6 +121,25 @@ export default function ChecksumVerifier() {
     };
     const allWorkers = [md5Worker, sha1Worker, sha256Worker];
 
+    function processSlice(file: File, start: number, sliceFileId: number) {
+        return (data: Uint8Array) => {
+            return new Promise<void>((resolve) => {
+                if (fileId.current == sliceFileId) {
+                    const processedBytes = start + data.length;
+                    allWorkers.forEach(worker => worker.current.postMessage({
+                        uint8Array: data,
+                        done: processedBytes >= file.size
+                    }));
+                    const processedPercentage = processedBytes / file.size * 100;
+                    setFileProgress(processedPercentage);
+                    resolve();
+                } else {
+                    console.log("File changed, aborting slice processing.");
+                }
+            });
+        };
+    }
+
     function onWorkerProgress() {
         if (fileSliceQueue.current.length) {
             // Get the minimum progress of all workers
@@ -114,10 +148,12 @@ export default function ChecksumVerifier() {
             const bytesSent = fileSliceQueue.current[0].start;
             const bytesInChunk = fileSliceQueue.current[0].end - fileSliceQueue.current[0].start;
             const numberOfChunksBehind = Math.floor((bytesSent - minProgress) / bytesInChunk);
-            // Send a new chunk if the progress is less than 20 chunks behind.
             const numberOfChunksToSend = numberOfChunksBuffer - numberOfChunksBehind;
             for (let i = 0; i < numberOfChunksToSend && fileSliceQueue.current.length; i++) {
-                readSlice(fileSliceQueue.current.shift()!);
+                const { file, start, end, fileId } = fileSliceQueue.current.shift()!;
+                slicePromiseChain.current = (slicePromiseChain.current
+                    .then(readSlice(file, start, end))
+                    .then(processSlice(file, start, fileId)));
             }
         }
     }
@@ -125,11 +161,13 @@ export default function ChecksumVerifier() {
     function resetChecksumStates() { resetWorkers({ md5Worker, sha1Worker, sha256Worker }); }
 
     function resetChecksumValues() {
-        setChecksumValues({ fileId: -1 });
+        setChecksumValues({ fileId: fileId.current });
     }
 
     function resetAll() {
+        fileId.current++;
         fileSliceQueue.current = [];
+        slicePromiseChain.current = Promise.resolve();
         resetChecksumStates();
         resetChecksumValues();
         setTextValue("");
@@ -150,23 +188,6 @@ export default function ChecksumVerifier() {
         }
     }
 
-    function readSlice({ file, start, end }: { file: File, start: number, end: number }) {
-        const fileSlice = file.slice(start, end);
-        const reader = new FileReader();
-        reader.onload = function (event) {
-            const result = event.target?.result as ArrayBuffer;
-            const view = new Uint8Array(result);
-            const processedBytes = start + view.length;
-            allWorkers.forEach(worker => worker.current.postMessage({
-                uint8Array: view,
-                done: processedBytes >= file.size
-            }));
-            const processedPercentage = processedBytes / file.size * 100;
-            setFileProgress(processedPercentage);
-        }
-        reader.readAsArrayBuffer(fileSlice);
-    }
-
 
     function readFile(event: React.ChangeEvent<HTMLInputElement>) {
         const file = event.target.files?.item(0);
@@ -176,7 +197,12 @@ export default function ChecksumVerifier() {
             // Create a stream reader to read the file
             // Read the file in chunks
             for (let i = 0; i < file.size; i += chunkSize) {
-                fileSliceQueue.current.push({ file, start: i, end: i + chunkSize });
+                fileSliceQueue.current.push({
+                    file,
+                    start: i,
+                    end: i + chunkSize,
+                    fileId: fileId.current
+                });
             }
             onWorkerProgress();
         }
