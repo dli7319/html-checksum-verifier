@@ -1,6 +1,6 @@
 # Checksum Verifier
 
-A simple web tool to compute the checksum of some text or small files. \
+A simple web tool to compute the checksum of some text or small files (~1 MB). \
 All checksums are computed locally using [node-forge](https://github.com/digitalbazaar/forge).
 
 ## Development
