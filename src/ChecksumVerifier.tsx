@@ -62,12 +62,18 @@ export default function ChecksumVerifier() {
         setChecksumValues({ fileId: -1 });
     }
 
-    function readText(event: React.ChangeEvent<HTMLTextAreaElement>) {
-        const text = event.target.value;
+    function resetAll() {
         resetChecksumStates();
         resetChecksumValues();
-        setTextValue(text);
+        setTextValue("");
         setFileValue("");
+        setFileProgress(0);
+    }
+
+    function readText(event: React.ChangeEvent<HTMLTextAreaElement>) {
+        const text = event.target.value;
+        resetAll();
+        setTextValue(text);
         if (text.length) {
             md5State.update(text);
             sha1State.update(text);
@@ -85,10 +91,8 @@ export default function ChecksumVerifier() {
 
     function readFile(event: React.ChangeEvent<HTMLInputElement>) {
         const file = event.target.files?.item(0);
+        resetAll();
         if (file) {
-            resetChecksumStates();
-            resetChecksumValues();
-            setTextValue("");
             setFileValue(event.target.value);
             // Create a stream reader to read the file
             const stream = file.stream();
@@ -129,10 +133,9 @@ export default function ChecksumVerifier() {
         }
     }
 
-    const className = `text-center ${styles.components}`;
-
+    const componentClasses = `text-center ${styles.components}`;
     return <div className={`text-center d-flex flex-wrap ${styles.mainContainer}`}>
-        <ChecksumInputs {...{ readText, readFile, textValue, fileValue, fileProgress }} className={className} />
-        <ChecksumOutputs {...checksumValues} className={className} />
+        <ChecksumInputs {...{ readText, readFile, textValue, fileValue, fileProgress }} className={componentClasses} />
+        <ChecksumOutputs {...checksumValues} className={componentClasses} />
     </div>;
 }
