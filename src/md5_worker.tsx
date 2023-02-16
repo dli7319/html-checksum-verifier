@@ -1,20 +1,23 @@
 import md5 from 'node-forge/lib/md5';
 
 const md5State = md5.create();
+let totalBytes = 0;
 
 self.onmessage = ({ data: {
     text,
-    dataArray,
     done,
 } }: {
     data: {
         text?: string,
-        dataArray?: Uint8Array
         done?: boolean
     }
 }) => {
     if (text) {
         md5State.update(text);
+        totalBytes += text.length;
+        self.postMessage({
+            progress: totalBytes
+        });
     }
     if (done) {
         self.postMessage({

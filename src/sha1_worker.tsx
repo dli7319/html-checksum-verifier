@@ -1,20 +1,23 @@
 import sha1 from 'node-forge/lib/sha1';
 
 const sha1State = sha1.create();
+let totalBytes = 0;
 
 self.onmessage = ({ data: {
     text,
-    dataArray,
     done,
 } }: {
     data: {
         text?: string,
-        dataArray?: Uint8Array
         done?: boolean
     }
 }) => {
     if (text) {
         sha1State.update(text);
+        totalBytes += text.length;
+        self.postMessage({
+            progress: totalBytes
+        });
     }
     if (done) {
         self.postMessage({

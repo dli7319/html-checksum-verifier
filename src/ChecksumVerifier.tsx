@@ -23,6 +23,7 @@ interface ChecksumValuesUpdate {
 
 interface WebWorkerMessage {
     checksum: string;
+    progress: number;
 }
 
 const defaultChecksumValues: ChecksumValues = {
@@ -54,7 +55,6 @@ function resetWorkers({ md5Worker, sha1Worker, sha256Worker }: ChecksumWorkerRef
     md5Worker.current = new Worker(new URL("./md5_worker.tsx", import.meta.url));
     sha1Worker.current = new Worker(new URL("./sha1_worker.tsx", import.meta.url));
     sha256Worker.current = new Worker(new URL("./sha256_worker.tsx", import.meta.url));
-    console.log("Reset workers");
 }
 
 const emptyWorker = new Worker(URL.createObjectURL(new Blob([""])));
@@ -68,22 +68,53 @@ export default function ChecksumVerifier() {
     const md5Worker = useRef<Worker>(emptyWorker);
     const sha1Worker = useRef<Worker>(emptyWorker);
     const sha256Worker = useRef<Worker>(emptyWorker);
+    const fileSliceQueue = useRef<{ file: File, start: number, end: number }[]>([]);
+    const workerProgress = useRef({
+        md5: 0,
+        sha1: 0,
+        sha256: 0,
+    });
     md5Worker.current.onmessage = ({ data }: MessageEvent<WebWorkerMessage>) => {
         if (data.checksum) {
             setChecksumValues({ md5Sum: data.checksum });
+        } else if (data.progress) {
+            workerProgress.current.md5 = data.progress;
+            onWorkerProgress();
         }
     };
     sha1Worker.current.onmessage = ({ data }: MessageEvent<WebWorkerMessage>) => {
         if (data.checksum) {
             setChecksumValues({ sha1Sum: data.checksum });
+        } else if (data.progress) {
+            workerProgress.current.sha1 = data.progress;
+            onWorkerProgress();
         }
     };
     sha256Worker.current.onmessage = ({ data }: MessageEvent<WebWorkerMessage>) => {
         if (data.checksum) {
             setChecksumValues({ sha256Sum: data.checksum });
+        } else if (data.progress) {
+            workerProgress.current.sha256 = data.progress;
+            onWorkerProgress();
         }
     };
     const allWorkers = [md5Worker, sha1Worker, sha256Worker];
+
+    function onWorkerProgress() {
+        if (fileSliceQueue.current.length) {
+            // Get the minimum progress of all workers
+            const minProgress = Math.min(...Object.values(workerProgress.current));
+            // Compute the amount of bytes sent to the workers
+            const bytesSent = fileSliceQueue.current[0].start;
+            const bytesInChunk = fileSliceQueue.current[0].end - fileSliceQueue.current[0].start;
+            const numberOfChunksBehind = Math.floor((bytesSent - minProgress) / bytesInChunk);
+            // Send a new chunk if the progress is less than 20 chunks behind.
+            const numberOfChunksToSend = 20 - numberOfChunksBehind;
+            for (let i = 0; i < numberOfChunksToSend && fileSliceQueue.current.length; i++) {
+                readSlice(fileSliceQueue.current.shift()!);
+            }
+        }
+    }
 
     function resetChecksumStates() { resetWorkers({ md5Worker, sha1Worker, sha256Worker }); }
 
@@ -92,6 +123,7 @@ export default function ChecksumVerifier() {
     }
 
     function resetAll() {
+        fileSliceQueue.current = [];
         resetChecksumStates();
         resetChecksumValues();
         setTextValue("");
@@ -104,7 +136,6 @@ export default function ChecksumVerifier() {
         resetAll();
         setTextValue(text);
         if (text.length) {
-            console.log("Starting to read text");
             const allWorkers = [md5Worker, sha1Worker, sha256Worker];
             allWorkers.forEach(worker => worker.current.postMessage({
                 text,
@@ -112,6 +143,23 @@ export default function ChecksumVerifier() {
             }));
         }
     }
+
+    function readSlice({ file, start, end }: { file: File, start: number, end: number }) {
+        const fileSlice = file.slice(start, end);
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const result = event.target?.result as string;
+            const processedBytes = start + result.length;
+            allWorkers.forEach(worker => worker.current.postMessage({
+                text: result,
+                done: processedBytes >= file.size
+            }));
+            const processedPercentage = processedBytes / file.size * 100;
+            setFileProgress(processedPercentage);
+        }
+        reader.readAsBinaryString(fileSlice);
+    }
+
 
     function readFile(event: React.ChangeEvent<HTMLInputElement>) {
         const file = event.target.files?.item(0);
@@ -122,22 +170,9 @@ export default function ChecksumVerifier() {
             // Read the file in chunks
             const chunkSize = 1024 * 1024; // 1 MB
             for (let i = 0; i < file.size; i += chunkSize) {
-                const startPosition = i;
-                const fileSlice = file.slice(i, i + chunkSize);
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    console.log("Started at", startPosition);
-                    const result = event.target?.result as string;
-                    const processedBytes = startPosition + result.length;
-                    allWorkers.forEach(worker => worker.current.postMessage({
-                        text: result,
-                        done: processedBytes >= file.size
-                    }));
-                    const processedPercentage = processedBytes / file.size * 100;
-                    setFileProgress(processedPercentage);
-                }
-                reader.readAsBinaryString(fileSlice);
+                fileSliceQueue.current.push({ file, start: i, end: i + chunkSize });
             }
+            onWorkerProgress();
         }
     }
 
