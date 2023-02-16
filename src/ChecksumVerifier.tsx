@@ -50,6 +50,7 @@ export default function ChecksumVerifier() {
 
     const [textValue, setTextValue] = useState("");
     const [fileValue, setFileValue] = useState("");
+    const [fileProgress, setFileProgress] = useState(0);
 
     function resetChecksumStates() {
         setMd5State(md5.create());
@@ -101,11 +102,9 @@ export default function ChecksumVerifier() {
                     const endTime = Date.now();
                     const duration = endTime - startTime;
                     console.log(`Read ${processedBytes} bytes in ${duration} ms`);
-                    // const md5sum = StreamMD5.finalize(md5State);
                     const md5sum = md5State.digest().toHex();
                     const sha1sum = sha1State.digest().toHex();
                     const sha256sum = sha256State.digest().toHex();
-
                     setChecksumValues({ md5Sum: md5sum });
                     setChecksumValues({ sha1Sum: sha1sum });
                     setChecksumValues({ sha256Sum: sha256sum });
@@ -114,12 +113,18 @@ export default function ChecksumVerifier() {
                 processedBytes += value.length;
                 console.log("Chunk length: " + value.length);
                 const processedPercentage = processedBytes / file.size * 100;
+                setFileProgress(processedPercentage);
                 console.log(`Read ${processedBytes} bytes (${processedPercentage.toFixed(2)}%)`);
-                const binary = String.fromCharCode.apply(null, Array.from(value));
-                md5State.update(binary);
-                sha1State.update(binary);
-                sha256State.update(binary);
-                reader.read().then(processChunk);
+                for (let i = 0; i < value.length; i++) {
+                    const binaryString = String.fromCharCode(value[i]);
+                    md5State.update(binaryString);
+                    sha1State.update(binaryString);
+                    sha256State.update(binaryString);
+                }
+                // Hack to allow the UI to update.
+                setTimeout(() => {
+                    reader.read().then(processChunk);
+                }, 1);
             });
         }
     }
@@ -127,7 +132,7 @@ export default function ChecksumVerifier() {
     const className = `text-center ${styles.components}`;
 
     return <div className={`text-center d-flex flex-wrap ${styles.mainContainer}`}>
-        <ChecksumInputs {...{ readText, readFile, textValue, fileValue }} className={className} />
+        <ChecksumInputs {...{ readText, readFile, textValue, fileValue, fileProgress }} className={className} />
         <ChecksumOutputs {...checksumValues} className={className} />
     </div>;
 }
