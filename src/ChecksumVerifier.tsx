@@ -1,7 +1,4 @@
-import React, { useState, useReducer } from 'react';
-import md5 from 'node-forge/lib/md5';
-import sha1 from 'node-forge/lib/sha1';
-import sha256 from 'node-forge/lib/sha256';
+import React, { useState, useReducer, useRef } from 'react';
 
 import ChecksumInputs from './ChecksumInputs';
 import ChecksumOutputs from './ChecksumOutputs';
@@ -24,6 +21,10 @@ interface ChecksumValuesUpdate {
     sha512Sum?: string;
 }
 
+interface WebWorkerMessage {
+    checksum: string;
+}
+
 const defaultChecksumValues: ChecksumValues = {
     fileId: 1,
     md5Sum: "",
@@ -42,21 +43,49 @@ function checksumValuesUpdater(state: ChecksumValues, newState: ChecksumValuesUp
     return { ...state, ...newState };
 }
 
+interface ChecksumWorkerRefs {
+    md5Worker: React.MutableRefObject<Worker>;
+    sha1Worker: React.MutableRefObject<Worker>;
+    sha256Worker: React.MutableRefObject<Worker>;
+}
+
+function resetWorkers({ md5Worker, sha1Worker, sha256Worker }: ChecksumWorkerRefs) {
+    [md5Worker, sha1Worker, sha256Worker].forEach(worker => worker.current.terminate());
+    md5Worker.current = new Worker(new URL("./md5_worker.tsx", import.meta.url));
+    sha1Worker.current = new Worker(new URL("./sha1_worker.tsx", import.meta.url));
+    sha256Worker.current = new Worker(new URL("./sha256_worker.tsx", import.meta.url));
+    console.log("Reset workers");
+}
+
+const emptyWorker = new Worker(URL.createObjectURL(new Blob([""])));
+
 export default function ChecksumVerifier() {
-    const [md5State, setMd5State] = useState(md5.create());
-    const [sha1State, setSha1State] = useState(sha1.create());
-    const [sha256State, setSha256State] = useState(sha256.create());
     const [checksumValues, setChecksumValues] = useReducer(checksumValuesUpdater, defaultChecksumValues);
 
     const [textValue, setTextValue] = useState("");
     const [fileValue, setFileValue] = useState("");
     const [fileProgress, setFileProgress] = useState(0);
+    const md5Worker = useRef<Worker>(emptyWorker);
+    const sha1Worker = useRef<Worker>(emptyWorker);
+    const sha256Worker = useRef<Worker>(emptyWorker);
+    md5Worker.current.onmessage = ({ data }: MessageEvent<WebWorkerMessage>) => {
+        if (data.checksum) {
+            setChecksumValues({ md5Sum: data.checksum });
+        }
+    };
+    sha1Worker.current.onmessage = ({ data }: MessageEvent<WebWorkerMessage>) => {
+        if (data.checksum) {
+            setChecksumValues({ sha1Sum: data.checksum });
+        }
+    };
+    sha256Worker.current.onmessage = ({ data }: MessageEvent<WebWorkerMessage>) => {
+        if (data.checksum) {
+            setChecksumValues({ sha256Sum: data.checksum });
+        }
+    };
+    const allWorkers = [md5Worker, sha1Worker, sha256Worker];
 
-    function resetChecksumStates() {
-        setMd5State(md5.create());
-        setSha1State(sha1.create());
-        setSha256State(sha256.create());
-    }
+    function resetChecksumStates() { resetWorkers({ md5Worker, sha1Worker, sha256Worker }); }
 
     function resetChecksumValues() {
         setChecksumValues({ fileId: -1 });
@@ -75,17 +104,12 @@ export default function ChecksumVerifier() {
         resetAll();
         setTextValue(text);
         if (text.length) {
-            md5State.update(text);
-            sha1State.update(text);
-            sha256State.update(text);
-            const md5sum = md5State.digest().toHex();
-            const sha1sum = sha1State.digest().toHex();
-            const sha256sum = sha256State.digest().toHex();
-            setChecksumValues({
-                md5Sum: md5sum,
-                sha1Sum: sha1sum,
-                sha256Sum: sha256sum
-            });
+            console.log("Starting to read text");
+            const allWorkers = [md5Worker, sha1Worker, sha256Worker];
+            allWorkers.forEach(worker => worker.current.postMessage({
+                text,
+                done: true
+            }));
         }
     }
 
@@ -106,12 +130,9 @@ export default function ChecksumVerifier() {
                     const endTime = Date.now();
                     const duration = endTime - startTime;
                     console.log(`Read ${processedBytes} bytes in ${duration} ms`);
-                    const md5sum = md5State.digest().toHex();
-                    const sha1sum = sha1State.digest().toHex();
-                    const sha256sum = sha256State.digest().toHex();
-                    setChecksumValues({ md5Sum: md5sum });
-                    setChecksumValues({ sha1Sum: sha1sum });
-                    setChecksumValues({ sha256Sum: sha256sum });
+                    allWorkers.forEach(worker => worker.current.postMessage({
+                        done: true
+                    }));
                     return;
                 }
                 processedBytes += value.length;
@@ -119,12 +140,12 @@ export default function ChecksumVerifier() {
                 const processedPercentage = processedBytes / file.size * 100;
                 setFileProgress(processedPercentage);
                 console.log(`Read ${processedBytes} bytes (${processedPercentage.toFixed(2)}%)`);
-                for (let i = 0; i < value.length; i++) {
-                    const binaryString = String.fromCharCode(value[i]);
-                    md5State.update(binaryString);
-                    sha1State.update(binaryString);
-                    sha256State.update(binaryString);
-                }
+                const startPost = Date.now();
+                allWorkers.forEach(worker => worker.current.postMessage({
+                    dataArray: value
+                }));
+                const endPost = Date.now();
+                console.log(`Posted ${value.length} bytes in ${endPost - startPost} ms`);
                 // Hack to allow the UI to update.
                 setTimeout(() => {
                     reader.read().then(processChunk);

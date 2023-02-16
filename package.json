@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "setup": "npm ci",
-    "build": "webpack --mode=production",
+    "build": "rm -f dist/*js* && webpack --mode=production",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack serve --mode development"
   },
