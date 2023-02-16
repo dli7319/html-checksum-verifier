@@ -59,6 +59,12 @@ function resetWorkers({ md5Worker, sha1Worker, sha256Worker }: ChecksumWorkerRef
 
 const emptyWorker = new Worker(URL.createObjectURL(new Blob([""])));
 
+// Size of chunks to read and send to the workers.
+const chunkSize = 64 * 1024 * 1024; // 64 MB
+// Number of chunks to send to the workers at a time.
+// TODO: Fix the bug here. The chunks are not read in order.
+const numberOfChunksBuffer = 1;
+
 export default function ChecksumVerifier() {
     const [checksumValues, setChecksumValues] = useReducer(checksumValuesUpdater, defaultChecksumValues);
 
@@ -109,7 +115,7 @@ export default function ChecksumVerifier() {
             const bytesInChunk = fileSliceQueue.current[0].end - fileSliceQueue.current[0].start;
             const numberOfChunksBehind = Math.floor((bytesSent - minProgress) / bytesInChunk);
             // Send a new chunk if the progress is less than 20 chunks behind.
-            const numberOfChunksToSend = 20 - numberOfChunksBehind;
+            const numberOfChunksToSend = numberOfChunksBuffer - numberOfChunksBehind;
             for (let i = 0; i < numberOfChunksToSend && fileSliceQueue.current.length; i++) {
                 readSlice(fileSliceQueue.current.shift()!);
             }
@@ -148,16 +154,17 @@ export default function ChecksumVerifier() {
         const fileSlice = file.slice(start, end);
         const reader = new FileReader();
         reader.onload = function (event) {
-            const result = event.target?.result as string;
-            const processedBytes = start + result.length;
+            const result = event.target?.result as ArrayBuffer;
+            const view = new Uint8Array(result);
+            const processedBytes = start + view.length;
             allWorkers.forEach(worker => worker.current.postMessage({
-                text: result,
+                uint8Array: view,
                 done: processedBytes >= file.size
             }));
             const processedPercentage = processedBytes / file.size * 100;
             setFileProgress(processedPercentage);
         }
-        reader.readAsBinaryString(fileSlice);
+        reader.readAsArrayBuffer(fileSlice);
     }
 
 
@@ -168,7 +175,6 @@ export default function ChecksumVerifier() {
             setFileValue(event.target.value);
             // Create a stream reader to read the file
             // Read the file in chunks
-            const chunkSize = 1024 * 1024; // 1 MB
             for (let i = 0; i < file.size; i += chunkSize) {
                 fileSliceQueue.current.push({ file, start: i, end: i + chunkSize });
             }

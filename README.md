@@ -1,7 +1,7 @@
 # Checksum Verifier
 
-A simple web tool to compute the checksum of some text or small files (~100 MB). \
-All checksums are computed locally using [node-forge](https://github.com/digitalbazaar/forge).
+A simple web tool to compute the checksum of some text or files. \
+All checksums are computed locally using [hash-wasm](https://www.npmjs.com/package/hash-wasm).
 
 ## Features
 * Each checksum is computed in a separate web worker for better performance.
@@ -14,7 +14,6 @@ All checksums are computed locally using [node-forge](https://github.com/digital
 
 <!-- 
 Todo:
-- Compute checksums in web workers. 
 - Add the ability to load multiple files and compute their checksums.
 -->
 
