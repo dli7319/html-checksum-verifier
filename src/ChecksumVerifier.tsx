@@ -89,6 +89,7 @@ export default function ChecksumVerifier() {
     const sha1Worker = useRef<Worker>(emptyWorker);
     const sha256Worker = useRef<Worker>(emptyWorker);
     const fileSliceQueue = useRef<{ file: File, start: number, end: number, fileId: number }[]>([]);
+    const fileSize = useRef(0);
     const workerProgress = useRef({
         md5: 0,
         sha1: 0,
@@ -130,8 +131,6 @@ export default function ChecksumVerifier() {
                         uint8Array: data,
                         done: processedBytes >= file.size
                     }));
-                    const processedPercentage = processedBytes / file.size * 100;
-                    setFileProgress(processedPercentage);
                     resolve();
                 } else {
                     console.log("File changed, aborting slice processing.");
@@ -141,9 +140,10 @@ export default function ChecksumVerifier() {
     }
 
     function onWorkerProgress() {
+        // Get the minimum progress of all workers
+        const minProgress = Math.min(...Object.values(workerProgress.current));
+        setFileProgress(100 * minProgress / fileSize.current);
         if (fileSliceQueue.current.length) {
-            // Get the minimum progress of all workers
-            const minProgress = Math.min(...Object.values(workerProgress.current));
             // Compute the amount of bytes sent to the workers
             const bytesSent = fileSliceQueue.current[0].start;
             const bytesInChunk = fileSliceQueue.current[0].end - fileSliceQueue.current[0].start;
@@ -194,7 +194,7 @@ export default function ChecksumVerifier() {
         resetAll();
         if (file) {
             setFileValue(event.target.value);
-            // Create a stream reader to read the file
+            fileSize.current = file.size;
             // Read the file in chunks
             for (let i = 0; i < file.size; i += chunkSize) {
                 fileSliceQueue.current.push({
