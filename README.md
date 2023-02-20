@@ -11,6 +11,9 @@ All checksums are computed locally using [hash-wasm](https://www.npmjs.com/packa
 2. Run `npm install` to install dependencies.
 3. Run `npm run dev` to start the development server.
 
+## Deployment
+* This project is automatically deployed to github pages on push to master.
+* For local deployment, run `npm run build` and then serve the `dist` folder.
 
 <!-- 
 Todo:
