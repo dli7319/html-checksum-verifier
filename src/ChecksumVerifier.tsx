@@ -83,7 +83,7 @@ export default function ChecksumVerifier() {
 
     const [textValue, setTextValue] = useState("");
     const [fileValue, setFileValue] = useState("");
-    const [fileProgress, setFileProgress] = useState(0);
+    const [fileProgress, setFileProgress] = useState(-1);
     const fileId = useRef(0);
     const md5Worker = useRef<Worker>(emptyWorker);
     const sha1Worker = useRef<Worker>(emptyWorker);
@@ -142,7 +142,9 @@ export default function ChecksumVerifier() {
     function onWorkerProgress() {
         // Get the minimum progress of all workers
         const minProgress = Math.min(...Object.values(workerProgress.current));
-        setFileProgress(100 * minProgress / fileSize.current);
+        if (fileSize.current > 0) {
+            setFileProgress(100 * minProgress / fileSize.current);
+        }
         if (fileSliceQueue.current.length) {
             // Compute the amount of bytes sent to the workers
             const bytesSent = fileSliceQueue.current[0].start;
@@ -168,11 +170,12 @@ export default function ChecksumVerifier() {
         fileId.current++;
         fileSliceQueue.current = [];
         slicePromiseChain.current = Promise.resolve();
+        fileSize.current = 0;
         resetChecksumStates();
         resetChecksumValues();
         setTextValue("");
         setFileValue("");
-        setFileProgress(0);
+        setFileProgress(-1);
     }
 
     function readText(event: React.ChangeEvent<HTMLTextAreaElement>) {
