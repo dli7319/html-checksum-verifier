@@ -1,7 +1,9 @@
 import React, { useState, useReducer } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import Alert from 'react-bootstrap/Alert';
-
+import Form from 'react-bootstrap/Form';
+import FloatingLabel from 'react-bootstrap/FloatingLabel';
+import InputGroup from 'react-bootstrap/InputGroup';
 import styles from './styles/ChecksumOutputs.module.css';
 
 
@@ -48,71 +50,79 @@ export default function ChecksumOutputs({
         setTimeout(() => setCopied({ [type]: false }), copiedTimeout);
     }
 
-    let verificationResult = "";
-    switch (verifyInput) {
-        case md5Sum:
-            verificationResult = "MD5";
-            break;
-        case sha1Sum:
-            verificationResult = "SHA1";
-            break;
-        case sha256Sum:
-            verificationResult = "SHA256";
-            break;
-    }
-    let verifyAlert = null;
-    if (verifyInput !== "") {
-        const verifyClassname = "mt-2 mb-0";
-        if (verificationResult !== "") {
-            verifyAlert = <Alert variant="success" className={verifyClassname}>Verified with {verificationResult}</Alert>;
-        } else {
-            verifyAlert = <Alert variant="danger" className={verifyClassname}>Verification failed</Alert>;
-        }
-    }
+    const verificationResult = ({
+        [md5Sum]: "MD5",
+        [sha1Sum]: "SHA1",
+        [sha256Sum]: "SHA256",
+    })[verifyInput] || "";
+    const verifyClassname = "mt-2 mb-0";
+    const verifyAlert = verifyInput !== "" ?
+        verificationResult !== "" ?
+            <Alert variant="success" className={verifyClassname}>Verified with {verificationResult}</Alert> :
+            <Alert variant="danger" className={verifyClassname}>Verification failed</Alert> :
+        null;
 
     return (
         <div className={className}>
             <h2>Checksums</h2>
-            <table className='mx-auto w-100'>
-                <tbody>
-                    <tr>
-                        <td>MD5SUM</td>
-                        <td>
-                            <input type="text" value={md5Sum} disabled />
+            <div className={`d-flex flex-column ${styles.checksumsContainer}`}>
+                <div className='d-flex'>
+                    <InputGroup>
+                        <FloatingLabel
+                            label="MD5SUM"
+                        >
+                            <Form.Control type="text" value={md5Sum} disabled />
+                        </FloatingLabel>
+                        <InputGroup.Text>
                             <CopyToClipboard text={md5Sum} onCopy={() => onCopy("md5Sum")}>
                                 <i className={`bi bi-clipboard2 ${styles.copyIcon}`} hidden={copied.md5Sum}></i>
                             </CopyToClipboard>
                             <i className={`bi bi-check ${styles.copyIcon}`} hidden={!copied.md5Sum}></i>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>SHA1SUM</td>
-                        <td>
-                            <input type="text" value={sha1Sum} disabled />
+                        </InputGroup.Text>
+                    </InputGroup>
+                </div>
+                <div className='d-flex'>
+                    <InputGroup>
+                        <FloatingLabel
+                            label="SHA1SUM"
+                        >
+                            <Form.Control type="text" value={sha1Sum} disabled />
+                        </FloatingLabel>
+                        <InputGroup.Text>
                             <CopyToClipboard text={sha1Sum} onCopy={() => onCopy("sha1Sum")}>
                                 <i className={`bi bi-clipboard2 ${styles.copyIcon}`} hidden={copied.sha1Sum}></i>
                             </CopyToClipboard>
                             <i className={`bi bi-check ${styles.copyIcon}`} hidden={!copied.sha1Sum}></i>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>SHA256SUM</td>
-                        <td>
-                            <input type="text" value={sha256Sum} disabled />
+                        </InputGroup.Text>
+                    </InputGroup>
+                </div>
+                <div className='d-flex'>
+                    <InputGroup>
+                        <FloatingLabel
+                            label="SHA256SUM"
+                        >
+                            <Form.Control type="text" value={sha256Sum} disabled />
+                        </FloatingLabel>
+                        <InputGroup.Text>
                             <CopyToClipboard text={sha256Sum} onCopy={() => onCopy("sha256Sum")}>
                                 <i className={`bi bi-clipboard2 ${styles.copyIcon}`} hidden={copied.sha256Sum}></i>
                             </CopyToClipboard>
                             <i className={`bi bi-check ${styles.copyIcon}`} hidden={!copied.sha256Sum}></i>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Verify</td>
-                        <td>
-                            <input type="text" value={verifyInput} onChange={e => setVerifyInput(e.target.value)} />
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                        </InputGroup.Text>
+                    </InputGroup>
+                </div>
+                <div className='d-flex'>
+                    <InputGroup>
+                        <FloatingLabel
+                            label="Verify"
+                        >
+                            <Form.Control type="text" value={verifyInput}
+                                placeholder="Enter a checksum to verify"
+                                onChange={e => setVerifyInput(e.target.value)} />
+                        </FloatingLabel>
+                    </InputGroup>
+                </div>
+            </div>
             {verifyAlert}
         </div>);
 }
