@@ -1,6 +1,7 @@
 import React from "react";
 import ProgressBar from 'react-bootstrap/ProgressBar';
-
+import FloatingLabel from 'react-bootstrap/FloatingLabel';
+import Form from 'react-bootstrap/Form';
 import styles from "./styles/ChecksumInputs.module.css";
 
 export default function ChecksumInputs({
@@ -19,18 +20,23 @@ export default function ChecksumInputs({
     className?: string;
 }) {
     const numberOfLines = Math.max(2, Math.min(10, textValue.split(/\r\n|\r|\n/).length));
-
+    console.log("Number of lines: " + numberOfLines);
     const progressBar = fileProgress < 0 ? null : (
         <ProgressBar animated now={fileProgress} label={`${fileProgress.toFixed(2)}%`} />
     );
-
     return (
-        <div className={className}>
+        <div className={`${className} ${styles.mainDiv}`}>
             <h2>Inputs</h2>
-            Text: <br />
-            <textarea onChange={readText} value={textValue} className={styles.inputTextarea} rows={numberOfLines} /><br />
-            File: <br />
-            <input type="file" onChange={readFile} value={fileValue} /><br />
+            <FloatingLabel label="Text Input">
+                <Form.Control
+                    as="textarea"
+                    rows={numberOfLines}
+                    value={textValue}
+                    onChange={readText}
+                    className={styles.textInput}
+                />
+            </FloatingLabel>
+            <Form.Control type="file" onChange={readFile} value={fileValue} />
             {progressBar}
         </div>
     );

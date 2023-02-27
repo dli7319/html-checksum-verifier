@@ -1,3 +1,7 @@
-.inputTextarea {
-    background-color: rgb(187, 187, 187);
+.mainDiv {
+    gap: 0.25rem;
+}
+
+.textInput {
+    height: unset!important;
 }
