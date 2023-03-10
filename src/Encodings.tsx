@@ -4,6 +4,7 @@ import FloatingLabel from 'react-bootstrap/FloatingLabel';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import isBase64 from 'is-base64';
+import {Base64} from 'js-base64';
 import styles from './styles/Encodings.module.css';
 
 
@@ -45,8 +46,8 @@ export default function Encodings(
         setTimeout(() => setCopied({ [type]: false }), copiedTimeout);
     }
 
-    const base64encoding = text ? btoa(text) : "";
-    const base64decoding = text && isBase64(text) ? atob(text) : "";
+    const base64encoding = text ? Base64.encode(text) : "";
+    const base64decoding = text && isBase64(text) ? Base64.decode(text) : "";
     return (
         <div className={className}>
             <h2>Encodings</h2>
