@@ -2,6 +2,7 @@ import React, { useState, useReducer, useRef } from 'react';
 
 import ChecksumInputs from './ChecksumInputs';
 import ChecksumOutputs from './ChecksumOutputs';
+import Encodings from './Encodings';
 
 import styles from './styles/ChecksumVerifier.module.css';
 
@@ -215,5 +216,6 @@ export default function ChecksumVerifier() {
     return <div className={`text-center d-flex flex-wrap ${styles.mainContainer}`}>
         <ChecksumInputs {...{ readText, readFile, textValue, fileValue, fileProgress }} className={componentClasses} />
         <ChecksumOutputs {...checksumValues} className={componentClasses} />
+        <Encodings text={textValue} className={componentClasses} />
     </div>;
 }
