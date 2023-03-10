@@ -20,7 +20,6 @@ export default function ChecksumInputs({
     className?: string;
 }) {
     const numberOfLines = Math.max(2, Math.min(10, textValue.split(/\r\n|\r|\n/).length));
-    console.log("Number of lines: " + numberOfLines);
     const progressBar = fileProgress < 0 ? null : (
         <ProgressBar animated now={fileProgress} label={`${fileProgress.toFixed(2)}%`} />
     );
