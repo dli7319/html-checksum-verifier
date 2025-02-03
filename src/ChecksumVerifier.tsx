@@ -53,9 +53,9 @@ interface ChecksumWorkerRefs {
 
 function resetWorkers({ md5Worker, sha1Worker, sha256Worker }: ChecksumWorkerRefs) {
     [md5Worker, sha1Worker, sha256Worker].forEach(worker => worker.current.terminate());
-    md5Worker.current = new Worker(new URL("./md5_worker.tsx", import.meta.url));
-    sha1Worker.current = new Worker(new URL("./sha1_worker.tsx", import.meta.url));
-    sha256Worker.current = new Worker(new URL("./sha256_worker.tsx", import.meta.url));
+    md5Worker.current = new Worker(new URL("./md5_worker.ts", import.meta.url));
+    sha1Worker.current = new Worker(new URL("./sha1_worker.ts", import.meta.url));
+    sha256Worker.current = new Worker(new URL("./sha256_worker.ts", import.meta.url));
 }
 
 function readSlice(file: File, start: number, end: number): () => Promise<Uint8Array> {
