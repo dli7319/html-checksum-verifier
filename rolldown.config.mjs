@@ -8,6 +8,9 @@ export default defineConfig([
       file: 'dist/main.js',
       format: 'iife',
     },
+    checks: {
+      moduleLevelDirective: false,
+    },
     resolve: {
       alias: {
         react: 'preact/compat',
