@@ -5,9 +5,10 @@
   "main": "main.js",
   "scripts": {
     "setup": "npm ci",
-    "build": "rm -f dist/*js* && webpack --mode=production",
+    "build": "rolldown -c",
+    "lint": "oxlint",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "webpack serve --mode development"
+    "dev": "rolldown -c -w"
   },
   "repository": {
     "type": "git",
@@ -21,27 +22,23 @@
   },
   "homepage": "https://github.com/dli7319/html-checksum-verifier#readme",
   "devDependencies": {
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.10",
     "@types/is-base64": "^1.1.1",
     "@types/node": "^22.13.0",
     "@types/react": "^18.0.28",
     "@types/react-copy-to-clipboard": "^5.0.4",
     "@types/react-dom": "^18.0.11",
     "bootstrap": "^5.1.3",
-    "css-loader": "^6.7.3",
     "hash-wasm": "^4.9.0",
     "is-base64": "^1.1.0",
     "js-base64": "^3.7.5",
+    "oxlint": "^1.86.0",
+    "postcss": "^8.5.28",
     "preact": "^10.12.1",
     "react-bootstrap": "^2.7.2",
     "react-copy-to-clipboard": "^5.1.0",
     "react-refresh": "^0.14.0",
-    "style-loader": "^3.3.1",
-    "ts-loader": "^9.5.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^4.9.5",
-    "webpack": "^5.68.0",
-    "webpack-cli": "^4.9.2",
-    "webpack-dev-server": "^4.11.1"
+    "rolldown": "^1.2.12",
+    "rollup-plugin-postcss": "^4.0.2",
+    "typescript": "^7.0.2"
   }
 }
