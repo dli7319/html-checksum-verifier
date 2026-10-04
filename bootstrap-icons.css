@@ -1,0 +1,29 @@
+/* Minimal subset of bootstrap-icons v1.10.3 (https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css).
+   Contains only the two glyphs used by this app:
+     U+F26E (bi-check) and U+F733 (bi-clipboard2).
+   The font is a pyftsubset subset of bootstrap-icons.woff2 v1.10.3; glyph outlines are
+   byte-identical to the original (verified with fontTools). Embedded as a base64 data URI
+   so there is no extra network request and no CDN dependency. */
+@font-face {
+  font-display: block;
+  font-family: "bootstrap-icons";
+  src: url("data:font/woff2;charset=utf-8;base64,d09GMgABAAAAAAIUAAsAAAAAA7wAAAHJAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHCoGYAA8CoF4gXUBNgIkAwoLCAAEIAWBEAcgG+4CAL4M2MY4zbsrYfeZe8O09TAjZtlYhfXrL8JjVSSCcozcS/KEYLlMCgAdCsnOdioMG1HhqgsbcOGy40wzDnQDVJLK//tT38/YOMBic+ICSjqWYK/WaOcECUm5wCFKPiRR9QID7PzWoLra0v8B+eP7zA3wXs4EOE/d1P/GeaBLPMW5ORoLMH7BLIQuXiBjgwaYm3PS4RMsU61DBWpNmpb27j96VuODqy8e6VbgPwAoocYJKvDVH5jV5+81OkZSkUGvOXlr3w3f7lLRF6UBBABISMholwXaFdOoVIT0SwbQdpk/qQxZufQFXAS0A0JqXqDn9n4Xz9428unH9yltvLmBd/H89olQ8+C4zaN5Vug7+LJIjqcH65vZgyHjJsRDcXDY91nWOYen6zktmg92KomqdMSljWaXVyyRVWesCX3nCa0DAqQOyMNV/6QZwqp2TORlHuX+CRmuAPw1EFVIEwgms/BbSP8JUuHVxLrP7G8VDqolEMQ8xDwbhMNJ1gMCORQLFSS6Kh2XRWEhDJJzSaNBLhuEX7gKnea3rDSIax577IXnXnjmqicW3HXdY488d9pNt730wFXPnHfTM8/dXT8etmLRsgzIAA==") format("woff2");
+}
+
+.bi::before,
+[class^="bi-"]::before,
+[class*=" bi-"]::before {
+  display: inline-block;
+  font-family: bootstrap-icons !important;
+  font-style: normal;
+  font-weight: normal !important;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  vertical-align: -.125em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.bi-check::before { content: "\f26e"; }
+.bi-clipboard2::before { content: "\f733"; }
